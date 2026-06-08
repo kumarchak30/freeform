@@ -606,3 +606,138 @@ canvas.visualizer {
 .ctx-item.danger { color: var(--pink); }
 .ctx-item.danger:hover { background: rgba(255,95,160,0.1); }
 .ctx-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* ── Hamburger & topbar ── */
+.topbar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.topbar-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.hamburger {
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 5px; background: none; border: none; cursor: pointer;
+  padding: 6px; border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.hamburger span {
+  display: block; width: 22px; height: 2px;
+  background: var(--text); border-radius: 99px;
+  transition: all 0.2s;
+}
+.hamburger:hover span { background: var(--accent); }
+
+/* Close button inside sidebar */
+.sidebar-close-btn {
+  display: none;
+  margin-left: auto;
+  background: none; border: none; cursor: pointer;
+  color: var(--text2); padding: 4px; border-radius: 6px;
+  align-items: center; justify-content: center;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.sidebar-close-btn:hover { color: var(--text); }
+
+/* Overlay behind sidebar on mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 19;
+}
+
+/* ── Mobile player ── */
+.player-mobile {
+  display: none;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  :root { --player-h: 130px; --sidebar-w: 280px; }
+
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr var(--player-h);
+  }
+
+  /* Sidebar becomes a fixed drawer */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: none;
+  }
+  .sidebar--open {
+    transform: translateX(0);
+    box-shadow: 4px 0 40px rgba(0,0,0,0.5);
+  }
+  .sidebar-close-btn { display: flex; }
+  .sidebar-overlay { display: block; }
+
+  /* Main fills full width */
+  .main {
+    grid-column: 1 / 2;
+    padding: 16px 16px 8px;
+  }
+
+  /* Show topbar with hamburger */
+  .topbar { display: flex; }
+
+  /* Player bar: stack into mobile layout */
+  .player-bar {
+    grid-column: 1 / 2;
+  }
+  .player {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    padding: 10px 16px 12px;
+    gap: 8px;
+    height: auto;
+  }
+
+  /* Hide visualizer and volume on mobile */
+  .player-right { display: none; }
+
+  /* Song info row */
+  .player-song-info {
+    justify-content: flex-start;
+  }
+  .player-art { width: 42px; height: 42px; font-size: 18px; }
+  .player-song-name { font-size: 13px; }
+  .player-song-artist { font-size: 11px; }
+
+  /* Controls: tighten up */
+  .player-controls { width: 100%; }
+  .player-buttons { gap: 4px; justify-content: center; }
+  .ctrl-btn { padding: 8px; }
+  .ctrl-btn-play { width: 40px; height: 40px; }
+
+  /* Progress bar full width */
+  .progress-row { width: 100%; }
+
+  /* Song table: hide album column on mobile */
+  .song-table thead th:nth-child(4),
+  .song-table tbody td:nth-child(4) { display: none; }
+
+  /* Playlist banner smaller */
+  .playlist-banner { height: auto; padding: 16px; }
+  .playlist-banner-name { font-size: 24px; }
+
+  /* Sort bar wraps */
+  .view-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+
+  /* Drop zone compact */
+  .drop-zone { padding: 24px 16px; }
+  .drop-zone-icon { font-size: 28px; }
+}

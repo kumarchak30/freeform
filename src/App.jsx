@@ -11,12 +11,32 @@ export default function App() {
   const view = useStore(s => s.view)
   const { audioRef, analyserRef } = useAudio()
   const [showCreate, setShowCreate] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const closeSidebar = () => setSidebarOpen(false)
 
   return (
-    <div className="app">
-      <Sidebar onCreatePlaylist={() => setShowCreate(true)} />
+    <div className={`app${sidebarOpen ? ' sidebar-open' : ''}`}>
+      {/* Mobile overlay — tap outside sidebar to close */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
+
+      <Sidebar
+        open={sidebarOpen}
+        onClose={closeSidebar}
+        onCreatePlaylist={() => { setShowCreate(true); closeSidebar() }}
+      />
 
       <main className="main">
+        {/* Top bar with hamburger */}
+        <div className="topbar">
+          <button className="hamburger" onClick={() => setSidebarOpen(v => !v)} aria-label="Toggle menu">
+            <span /><span /><span />
+          </button>
+          <span className="topbar-title">
+            {view === 'library' ? 'Library' : null}
+          </span>
+        </div>
+
         {view === 'library'
           ? <LibraryView />
           : <PlaylistView playlistId={view} />
