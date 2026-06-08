@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import useStore from './store/useStore'
 import useAudio from './hooks/useAudio'
+import useWakeLock from './hooks/useWakeLock'
 import Sidebar from './components/Sidebar/Sidebar'
 import LibraryView from './components/Library/LibraryView'
 import PlaylistView from './components/Library/PlaylistView'
@@ -10,6 +11,7 @@ import CreatePlaylistModal from './components/Modals/CreatePlaylistModal'
 export default function App() {
   const view = useStore(s => s.view)
   const { audioRef, analyserRef } = useAudio()
+  useWakeLock()
   const [showCreate, setShowCreate] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 769)
 
