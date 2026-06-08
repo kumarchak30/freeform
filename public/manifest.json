@@ -1,0 +1,26 @@
+{
+  "name": "Freeform",
+  "short_name": "Freeform",
+  "description": "Your personal music streaming app",
+  "start_url": "/freeform/",
+  "scope": "/freeform/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "categories": ["music", "entertainment"],
+  "icons": [
+    {
+      "src": "/freeform/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/freeform/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
