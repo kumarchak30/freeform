@@ -11,14 +11,14 @@ export default function App() {
   const view = useStore(s => s.view)
   const { audioRef, analyserRef } = useAudio()
   const [showCreate, setShowCreate] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 769)
 
   const closeSidebar = () => setSidebarOpen(false)
 
   return (
     <div className={`app${sidebarOpen ? ' sidebar-open' : ''}`}>
-      {/* Mobile overlay — tap outside sidebar to close */}
-      {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
+      {/* Overlay on mobile only — tap outside sidebar to close */}
+      {sidebarOpen && window.innerWidth < 769 && <div className="sidebar-overlay" onClick={closeSidebar} />}
 
       <Sidebar
         open={sidebarOpen}
