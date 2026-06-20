@@ -2,13 +2,13 @@ import { useEffect, useRef } from 'react'
 import useStore from '../store/useStore'
 
 export default function useAudio() {
-  const audioRef    = useRef(null)
-  const analyserRef = useRef(null) // always null — visualizer uses idle animation
+  const audioRef      = useRef(null)
+  const analyserRef   = useRef(null)  // always null — visualizer uses idle animation
+  const switchingRef  = useRef(false) // guard: prevent double-transition
 
   const songs          = useStore(s => s.songs)
   const currentSongId  = useStore(s => s.currentSongId)
   const isPlaying      = useStore(s => s.isPlaying)
-  const nextSong       = useStore(s => s.nextSong)
   const setIsPlaying   = useStore(s => s.setIsPlaying)
   const updateSongMeta = useStore(s => s.updateSongMeta)
 
@@ -24,52 +24,76 @@ export default function useAudio() {
     }
     const audio = audioRef.current
 
-    const onEnded = () => {
+    // Advance to the next song while audio is still "playing".
+    // iOS allows play() on a new src if the element is currently in playing state —
+    // it treats it as a continuation. Calling play() after onEnded is treated as
+    // a new request and gets silently blocked in background.
+    const advance = () => {
       const state = useStore.getState()
 
       if (state.loopMode === 'one') {
         audio.currentTime = 0
         audio.play().catch(() => {})
+        switchingRef.current = false
         return
       }
 
-      // Update the store (shuffles queue, advances index, etc.)
       state.nextSong()
 
-      // iOS may have throttled React's render cycle — drive audio imperatively
-      // so the next song starts immediately without waiting for a re-render
-      setTimeout(() => {
-        const next = useStore.getState()
-        const song = next.songs.find(s => s.id === next.currentSongId)
-        if (!song || !next.isPlaying) return
-        if (audio.src !== song.url) {
-          audio.src = song.url
-          audio.load()
-        }
-        audio.addEventListener('canplay', () => audio.play().catch(() => {}), { once: true })
-      }, 0)
+      const next = useStore.getState()
+      const song = next.songs.find(s => s.id === next.currentSongId)
+      if (!song || !next.isPlaying) {
+        switchingRef.current = false
+        return
+      }
+
+      audio.src = song.url
+      // play() immediately — don't wait for canplay, keeps iOS happy
+      audio.play().catch(() => {})
+      // Reset guard after new song is underway
+      setTimeout(() => { switchingRef.current = false }, 3000)
+    }
+
+    // Primary: fire ~0.5s before end, while still in "playing" state
+    const onTimeUpdate = () => {
+      if (switchingRef.current) return
+      const { duration, currentTime } = audio
+      if (!duration || isNaN(duration)) return
+      if (duration - currentTime > 0.5) return
+      switchingRef.current = true
+      advance()
+    }
+
+    // Fallback: if timeupdate somehow missed it
+    const onEnded = () => {
+      if (switchingRef.current) return
+      switchingRef.current = true
+      advance()
     }
 
     // OS interrupted playback (screen lock, phone call) — resume if we should still be playing
     const onPause = () => {
-      if (useStore.getState().isPlaying) {
+      if (useStore.getState().isPlaying && !switchingRef.current) {
         setTimeout(() => audio.play().catch(() => {}), 300)
       }
     }
 
+    audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('ended', onEnded)
     audio.addEventListener('pause', onPause)
     return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate)
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('pause', onPause)
     }
-  }, []) // empty deps — all state read live from store inside handlers
+  }, [])
 
-  // Swap src when song changes (handles UI-driven changes: clicking a song, prev/next from lock screen)
+  // Swap src when song changes via UI (clicking a song, lock screen prev/next)
   useEffect(() => {
     if (!currentSong) return
     const audio = audioRef.current
     if (audio.src !== currentSong.url) {
+      switchingRef.current = false // reset guard on manual switch
       audio.src = currentSong.url
       audio.load()
     }
