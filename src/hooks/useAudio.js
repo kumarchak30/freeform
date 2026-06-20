@@ -19,19 +19,35 @@ export default function useAudio() {
     if (!audioRef.current) {
       const audio = new Audio()
       audio.crossOrigin = 'anonymous'
-      // Tell the OS this is a long-form audio stream so it handles background correctly
       audio.preload = 'metadata'
       audioRef.current = audio
     }
     const audio = audioRef.current
 
     const onEnded = () => {
-      if (useStore.getState().loopMode === 'one') {
+      const state = useStore.getState()
+
+      if (state.loopMode === 'one') {
         audio.currentTime = 0
-        audio.play()
-      } else {
-        nextSong()
+        audio.play().catch(() => {})
+        return
       }
+
+      // Update the store (shuffles queue, advances index, etc.)
+      state.nextSong()
+
+      // iOS may have throttled React's render cycle — drive audio imperatively
+      // so the next song starts immediately without waiting for a re-render
+      setTimeout(() => {
+        const next = useStore.getState()
+        const song = next.songs.find(s => s.id === next.currentSongId)
+        if (!song || !next.isPlaying) return
+        if (audio.src !== song.url) {
+          audio.src = song.url
+          audio.load()
+        }
+        audio.addEventListener('canplay', () => audio.play().catch(() => {}), { once: true })
+      }, 0)
     }
 
     // OS interrupted playback (screen lock, phone call) — resume if we should still be playing
@@ -47,9 +63,9 @@ export default function useAudio() {
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('pause', onPause)
     }
-  }, [nextSong])
+  }, []) // empty deps — all state read live from store inside handlers
 
-  // Swap src when song changes
+  // Swap src when song changes (handles UI-driven changes: clicking a song, prev/next from lock screen)
   useEffect(() => {
     if (!currentSong) return
     const audio = audioRef.current
