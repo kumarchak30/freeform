@@ -1,32 +1,27 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import useStore from '../store/useStore'
 
 export default function useAudio() {
   const audioRef    = useRef(null)
-  const contextRef  = useRef(null)
-  const analyserRef = useRef(null)
-  const sourceRef   = useRef(null)
+  const analyserRef = useRef(null) // always null — visualizer uses idle animation
 
-  const songs         = useStore(s => s.songs)
-  const currentSongId = useStore(s => s.currentSongId)
-  const isPlaying     = useStore(s => s.isPlaying)
-  const nextSong      = useStore(s => s.nextSong)
-  const setIsPlaying  = useStore(s => s.setIsPlaying)
+  const songs          = useStore(s => s.songs)
+  const currentSongId  = useStore(s => s.currentSongId)
+  const isPlaying      = useStore(s => s.isPlaying)
+  const nextSong       = useStore(s => s.nextSong)
+  const setIsPlaying   = useStore(s => s.setIsPlaying)
   const updateSongMeta = useStore(s => s.updateSongMeta)
 
   const currentSong = songs.find(s => s.id === currentSongId) ?? null
 
-  // Resume AudioContext — called whenever the context might be suspended
-  const resumeContext = useCallback(() => {
-    const ctx = contextRef.current
-    if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {})
-  }, [])
-
   // Init audio element once
   useEffect(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio()
-      audioRef.current.crossOrigin = 'anonymous'
+      const audio = new Audio()
+      audio.crossOrigin = 'anonymous'
+      // Tell the OS this is a long-form audio stream so it handles background correctly
+      audio.preload = 'metadata'
+      audioRef.current = audio
     }
     const audio = audioRef.current
 
@@ -39,15 +34,10 @@ export default function useAudio() {
       }
     }
 
-    // OS interrupted audio (screen lock, phone call, etc.) — resume if we should be playing
+    // OS interrupted playback (screen lock, phone call) — resume if we should still be playing
     const onPause = () => {
-      const { isPlaying } = useStore.getState()
-      if (isPlaying) {
-        // Small delay — let the OS settle before trying to resume
-        setTimeout(() => {
-          resumeContext()
-          audio.play().catch(() => {})
-        }, 300)
+      if (useStore.getState().isPlaying) {
+        setTimeout(() => audio.play().catch(() => {}), 300)
       }
     }
 
@@ -57,28 +47,7 @@ export default function useAudio() {
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('pause', onPause)
     }
-  }, [nextSong, resumeContext])
-
-  // Build Web Audio graph once on first play
-  const ensureAudioGraph = useCallback(() => {
-    if (contextRef.current) return
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const analyser = ctx.createAnalyser()
-    analyser.fftSize = 256
-    const source = ctx.createMediaElementSource(audioRef.current)
-    source.connect(analyser)
-    analyser.connect(ctx.destination)
-    contextRef.current = ctx
-    analyserRef.current = analyser
-    sourceRef.current = source
-
-    // Auto-resume whenever the context is suspended unexpectedly
-    ctx.addEventListener('statechange', () => {
-      if (ctx.state === 'suspended' && useStore.getState().isPlaying) {
-        ctx.resume().catch(() => {})
-      }
-    })
-  }, [])
+  }, [nextSong])
 
   // Swap src when song changes
   useEffect(() => {
@@ -98,36 +67,22 @@ export default function useAudio() {
     const audio = audioRef.current
     if (!audio || !currentSong) return
     if (isPlaying) {
-      ensureAudioGraph()
-      resumeContext()
       audio.play().catch(() => setIsPlaying(false))
     } else {
       audio.pause()
     }
   }, [isPlaying, currentSong?.id])
 
-  // Resume AudioContext when tab/app becomes visible again (screen unlock)
+  // Retry when page becomes visible again (screen unlock)
   useEffect(() => {
     const onVisible = () => {
       if (!document.hidden && useStore.getState().isPlaying) {
-        resumeContext()
         audioRef.current?.play().catch(() => {})
       }
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [resumeContext])
-
-  // iOS: resume on any user interaction in case context was suspended
-  useEffect(() => {
-    const onInteraction = () => resumeContext()
-    window.addEventListener('touchstart', onInteraction, { passive: true })
-    window.addEventListener('touchend',   onInteraction, { passive: true })
-    return () => {
-      window.removeEventListener('touchstart', onInteraction)
-      window.removeEventListener('touchend',   onInteraction)
-    }
-  }, [resumeContext])
+  }, [])
 
   return { audioRef, analyserRef }
 }
