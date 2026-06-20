@@ -709,7 +709,7 @@ canvas.visualizer {
 /* ── ReForm sidebar panel ── */
 .sidebar-reform-wrap {
   padding: 12px 12px 16px;
-  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .reform-panel {

@@ -1,4 +1,4 @@
-const CACHE = 'freeform-v1'
+const CACHE = 'freeform-v2'
 
 // App shell files to cache on install
 const PRECACHE = [
