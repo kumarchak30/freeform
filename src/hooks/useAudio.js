@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 import useStore from '../store/useStore'
+import { recordPlay } from '../reform'
 
 export default function useAudio() {
   const audioRef      = useRef(null)
   const analyserRef   = useRef(null)  // always null — visualizer uses idle animation
   const switchingRef  = useRef(false) // guard: prevent double-transition
+  const playCountedRef = useRef(false) // guard: count each song play once
 
   const songs          = useStore(s => s.songs)
   const currentSongId  = useStore(s => s.currentSongId)
@@ -55,10 +57,19 @@ export default function useAudio() {
     }
 
     // Primary: fire ~0.5s before end, while still in "playing" state
+    // Also record a play after 10s (avoids counting skips)
     const onTimeUpdate = () => {
-      if (switchingRef.current) return
       const { duration, currentTime } = audio
       if (!duration || isNaN(duration)) return
+
+      if (!playCountedRef.current && currentTime >= 10) {
+        playCountedRef.current = true
+        const state = useStore.getState()
+        const playlistId = state.view === 'library' || state.view === 'reform' ? 'library' : state.view
+        recordPlay(state.currentSongId, playlistId)
+      }
+
+      if (switchingRef.current) return
       if (duration - currentTime > 0.5) return
       switchingRef.current = true
       advance()
@@ -93,7 +104,8 @@ export default function useAudio() {
     if (!currentSong) return
     const audio = audioRef.current
     if (audio.src !== currentSong.url) {
-      switchingRef.current = false // reset guard on manual switch
+      switchingRef.current = false
+      playCountedRef.current = false // reset play count for new song
       audio.src = currentSong.url
       audio.load()
     }

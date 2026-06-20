@@ -1,4 +1,5 @@
 import useStore from '../../store/useStore'
+import ReFormPanel from '../ReForm/ReFormPanel'
 
 export default function Sidebar({ open, onClose, onCreatePlaylist }) {
   const playlists = useStore(s => s.playlists)
@@ -52,6 +53,10 @@ export default function Sidebar({ open, onClose, onCreatePlaylist }) {
         <PlusIcon />
         New Playlist
       </button>
+
+      <div className="sidebar-reform-wrap">
+        <ReFormPanel />
+      </div>
     </aside>
   )
 }

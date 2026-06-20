@@ -6,6 +6,7 @@ import useMediaSession from './hooks/useMediaSession'
 import Sidebar from './components/Sidebar/Sidebar'
 import LibraryView from './components/Library/LibraryView'
 import PlaylistView from './components/Library/PlaylistView'
+import ReFormView from './components/ReForm/ReFormView'
 import Player from './components/Player/Player'
 import CreatePlaylistModal from './components/Modals/CreatePlaylistModal'
 
@@ -37,12 +38,14 @@ export default function App() {
             <span /><span /><span />
           </button>
           <span className="topbar-title">
-            {view === 'library' ? 'Library' : null}
+            {view === 'library' ? 'Library' : view === 'reform' ? 'ReForm' : null}
           </span>
         </div>
 
         {view === 'library'
           ? <LibraryView />
+          : view === 'reform'
+          ? <ReFormView />
           : <PlaylistView playlistId={view} />
         }
       </main>
